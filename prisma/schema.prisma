@@ -11,20 +11,73 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String?
-  image         String?
-  emailVerified DateTime?
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String          @id @default(cuid())
+  email          String          @unique
+  firstName      String
+  lastName       String
+  password       String
+  image          String?
+  emailVerified  DateTime?
+  resetToken     String?
+  resetTokenExp  DateTime?
+  lastLogin      DateTime?
+  failedAttempts Int            @default(0)
+  lockedUntil    DateTime?
+  role           Role           @default(USER)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+  projects       Project[]      @relation("ProjectOwner")
+  memberships    ProjectMember[]
 
   @@map("users")
+}
+
+model Project {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  owner       User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  members     ProjectMember[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String            @id @default(cuid())
+  projectId String
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?            @relation(fields: [userId], references: [id])
+  email     String
+  role      ProjectMemberRole @default(COLLABORATOR)
+  status    MemberStatus     @default(PENDING)
+  joinedAt  DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([projectId, email])
+  @@map("project_members")
 }
 
 enum Role {
   USER
   ADMIN
+}
+
+enum ProjectMemberRole {
+  OWNER
+  ADMIN
+  COLLABORATOR
+  VIEWER
+}
+
+enum MemberStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
 } 
